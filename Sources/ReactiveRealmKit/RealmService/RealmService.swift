@@ -23,12 +23,18 @@ public final class RealmService: RealmServiceProtocol {
     
     // MARK: – Create
     public func save<T:Object>(of type: T.Type, models: [T]) {
+        let references = models.map(ThreadSafeReference.init)
         DispatchQueue.global(qos: .background).async {
             autoreleasepool { [] in
                 do {
                     let realm = try! Realm()
+                    
+                    let resolvedModel = references.compactMap { ref in
+                        realm.resolve(ref)
+                    }
+                    
                     try realm.write {
-                        realm.add(models, update: .all)
+                        realm.add(resolvedModel, update: .all)
                     }
                 } catch let error as NSError {
                     print(error.localizedDescription)
