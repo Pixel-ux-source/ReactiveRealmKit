@@ -9,6 +9,7 @@ import UIKit
 import RxSwift
 import RealmSwift
 
+@available(iOS 13.0, *)
 public final class UserDataService: DataServiceProtocol {
     // MARK: – Typealias
     typealias Model = UsersModel

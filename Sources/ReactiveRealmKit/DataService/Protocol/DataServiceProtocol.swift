@@ -9,6 +9,7 @@ import Foundation
 import RealmSwift
 import RxSwift
 
+@available(iOS 13.0, *)
 protocol DataServiceProtocol: AnyObject {
     associatedtype Model: Object
     init(network: NetworkService, strorage: RealmService, apiKey: String)

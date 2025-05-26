@@ -9,6 +9,7 @@ import UIKit
 import RealmSwift
 import RxSwift
 
+@available(iOS 13.0, *)
 final public class StatisticsDataService: DataServiceProtocol {
     // MARK: – Typealias
     typealias Model = StatisticsModel
@@ -34,7 +35,7 @@ final public class StatisticsDataService: DataServiceProtocol {
     private func loadDataStatistics(sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> RxSwift.Observable<[StatisticsModel]> {
         
         return realmService
-            .fetchAll(of: StatisticsModel.self,csortDescriptors: sortDescriptors, limit: limit)
+            .fetchAll(of: StatisticsModel.self, sortDescriptors: sortDescriptors, limit: limit)
             .flatMap { [weak self] users -> Observable<[StatisticsModel]> in
                 guard let self else { return .just([]) }
                 return users.isEmpty ? self.refreshDataStatistics() : .just(users)

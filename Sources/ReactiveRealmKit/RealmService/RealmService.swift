@@ -9,12 +9,14 @@ import UIKit
 import RealmSwift
 import RxSwift
 
+@available(iOS 13.0, *)
 protocol RealmServiceProtocol: AnyObject {
     func save<T:Object>(of type: T.Type, models: [T])
     func fetchAll<T:Object>(of type: T.Type, sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> Observable<[T]>
     func observe<T:Object>(of type: T.Type) -> Observable<[T]>
 }
 
+@available(iOS 13.0, *)
 public final class RealmService: RealmServiceProtocol {
     public init() {
         let realm = try! Realm()
@@ -23,18 +25,14 @@ public final class RealmService: RealmServiceProtocol {
     
     // MARK: – Create
     public func save<T:Object>(of type: T.Type, models: [T]) {
-        let references = models.map(ThreadSafeReference.init)
+        let boxed = UnsafeModelBox(models: models)
+        
         DispatchQueue.global(qos: .background).async {
-            autoreleasepool { [] in
+            autoreleasepool {
                 do {
-                    let realm = try! Realm()
-                    
-                    let resolvedModel = references.compactMap { ref in
-                        realm.resolve(ref)
-                    }
-                    
+                    let realm = try Realm()
                     try realm.write {
-                        realm.add(resolvedModel, update: .all)
+                        realm.add(boxed.models, update: .all)
                     }
                 } catch let error as NSError {
                     print(error.localizedDescription)
@@ -44,6 +42,7 @@ public final class RealmService: RealmServiceProtocol {
     }
     
     // MARK: – Read
+    @available(iOS 13.0, *)
     public func fetchAll<T:Object>(of type: T.Type, sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> Observable<[T]> {
         
         let observable = Observable<[T]>.create { observer in
