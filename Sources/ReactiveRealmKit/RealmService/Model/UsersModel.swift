@@ -10,12 +10,12 @@ import RealmSwift
 
 @objcMembers
 public final class UsersModel: Object {
-    var id = RealmProperty<Int32?>()
-    dynamic var sex: String?
-    dynamic var username: String?
-    var isOnline = RealmProperty<Bool?>()
-    var age = RealmProperty<Int32?>()
-    var files = List<FilesModel>()
+    public var id = RealmProperty<Int32?>()
+    public dynamic var sex: String?
+    public dynamic var username: String?
+    public var isOnline = RealmProperty<Bool?>()
+    public var age = RealmProperty<Int32?>()
+    public var files = List<FilesModel>()
     
     public override class func primaryKey() -> String? {
         "id"

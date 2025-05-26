@@ -10,9 +10,9 @@ import RealmSwift
 
 @objcMembers
 public final class StatisticsModel: Object {
-    var userId = RealmProperty<Int32?>()
-    dynamic var type: String?
-    var dates = List<Int32>()
+    public var userId = RealmProperty<Int32?>()
+    public dynamic var type: String?
+    public var dates = List<Int32>()
     
     public override class func primaryKey() -> String? {
         "userId"

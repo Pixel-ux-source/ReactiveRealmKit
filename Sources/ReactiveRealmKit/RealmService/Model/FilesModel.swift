@@ -10,9 +10,9 @@ import RealmSwift
 
 @objcMembers
 public final class FilesModel: Object {
-    var id = RealmProperty<Int32?>()
-    dynamic var url: String?
-    dynamic var type: String?
+    public var id = RealmProperty<Int32?>()
+    public dynamic var url: String?
+    public dynamic var type: String?
     
     public override class func primaryKey() -> String? {
         "id"
