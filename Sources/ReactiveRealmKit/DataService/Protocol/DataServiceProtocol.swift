@@ -13,7 +13,7 @@ protocol DataServiceProtocol: AnyObject {
     associatedtype Model: Object
     init(network: NetworkService, strorage: RealmService, apiKey: String)
     
-    func loadData(predicate: NSPredicate?, sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> Observable<[Model]>
+    func loadData(sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> Observable<[Model]>
     
     func refreshData() -> Observable<[Model]>
     

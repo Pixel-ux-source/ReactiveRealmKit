@@ -11,7 +11,7 @@ import RxSwift
 
 protocol RealmServiceProtocol: AnyObject {
     func save<T:Object>(of type: T.Type, models: [T])
-    func fetchAll<T:Object>(of type: T.Type, predicate: NSPredicate?, sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> [T]
+    func fetchAll<T:Object>(of type: T.Type, sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> Observable<[T]>
     func observe<T:Object>(of type: T.Type) -> Observable<[T]>
 }
 
@@ -44,39 +44,69 @@ public final class RealmService: RealmServiceProtocol {
     }
     
     // MARK: – Read
-    public func fetchAll<T:Object>(of type: T.Type, predicate: NSPredicate?, sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> [T] {
-        let realm = try! Realm()
-        var results = realm.objects(T.self)
-
-        guard let predicate = predicate else { return Array(results) }
-        results = results.filter(predicate)
+    public func fetchAll<T:Object>(of type: T.Type, sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> Observable<[T]> {
         
-        guard let sortDescriptors = sortDescriptors else { return Array(results) }
-        results = results.sorted(by: sortDescriptors)
-        
-        guard let limit = limit else { return Array(results) }
-        return Array(results.prefix(limit))
+        let observable = Observable<[T]>.create { observer in
+            let observerWrapper = ObserverWrapper(observer: observer)
+            
+            DispatchQueue.global(qos: .background).async {
+                autoreleasepool {
+                    do {
+                        let realm = try Realm(configuration: .defaultConfiguration)
+                        var results = realm.objects(T.self)
+                        
+                        if let sortDescriptors = sortDescriptors {
+                            results = results.sorted(by: sortDescriptors)
+                        }
+                        
+                        let output: [T] = {
+                            guard let limit = limit else { return Array(results) }
+                            return Array(results.prefix(limit))
+                        }()
+                        
+                        let refs = output.map { ThreadSafeReference(to: $0) }
+                        
+                        do {
+                            let realm = try Realm(configuration: .defaultConfiguration)
+                            let resolved = refs.compactMap { realm.resolve($0) }
+                            observerWrapper.observer.onNext(resolved)
+                            observerWrapper.observer.onCompleted()
+                        } catch let error {
+                            observerWrapper.observer.onError(error)
+                        }
+                    } catch let error {
+                        observerWrapper.observer.onError(error)
+                    }
+                }
+            }
+            return Disposables.create()
+        }
+        return observable
     }
     
     public func observe<T:Object>(of type: T.Type) -> Observable<[T]> {
-        let realm = try! Realm()
-        let results = realm.objects(T.self)
-        let observable = Observable<[T]>.create { observer in
-            let token = results.observe { changes in
-                switch changes {
-                case .initial(let initial):
-                    observer.onNext(Array(initial))
-                case .update(let update, deletions: _, insertions: _, modifications: _):
-                    observer.onNext(Array(update))
-                case .error(let error):
-                    observer.onError(error)
+            let observable = Observable<[T]>.create { observer in
+                do {
+                    let realm = try! Realm()
+                    let results = realm.objects(T.self)
+                    
+                    let token = results.observe { changes in
+                        switch changes {
+                        case .initial(let initial):
+                            observer.onNext(Array(initial))
+                        case .update(let update, deletions: _, insertions: _, modifications: _):
+                            observer.onNext(Array(update))
+                        case .error(let error):
+                            observer.onError(error)
+                        }
+                    }
+                    
+                    return Disposables.create {
+                        token.invalidate()
+                    }
                 }
+                
             }
-            
-            return Disposables.create {
-                token.invalidate()
-            }
-        }
-        return observable
+            return observable
     }
 }

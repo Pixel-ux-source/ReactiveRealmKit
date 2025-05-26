@@ -27,18 +27,21 @@ final public class StatisticsDataService: DataServiceProtocol {
 
     
     // MARK: – Load Data
-    public func loadData(predicate: NSPredicate? = nil, sortDescriptors: [RealmSwift.SortDescriptor]? = nil, limit: Int? = nil) -> RxSwift.Observable<[StatisticsModel]> {
-        loadDataStatistics(predicate: predicate, sortDescriptors: sortDescriptors, limit: limit)
+    public func loadData(sortDescriptors: [RealmSwift.SortDescriptor]? = nil, limit: Int? = nil) -> RxSwift.Observable<[StatisticsModel]> {
+        loadDataStatistics(sortDescriptors: sortDescriptors, limit: limit)
     }
     
-    private func loadDataStatistics(predicate: NSPredicate?, sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> RxSwift.Observable<[StatisticsModel]> {
-        let data = realmService.fetchAll(of: StatisticsModel.self, predicate: predicate, sortDescriptors: sortDescriptors, limit: limit)
+    private func loadDataStatistics(sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> RxSwift.Observable<[StatisticsModel]> {
         
-        if !data.isEmpty {
-            return Observable.just(data)
-        } else {
-            return refreshDataStatistics()
-        }
+        return realmService
+            .fetchAll(of: StatisticsModel.self,csortDescriptors: sortDescriptors, limit: limit)
+            .flatMap { [weak self] users -> Observable<[StatisticsModel]> in
+                guard let self else { return .just([]) }
+                return users.isEmpty ? self.refreshDataStatistics() : .just(users)
+            }
+            .do(onError: { error in
+                    print(error.localizedDescription)
+            })
     }
     
     // MARK: – Refresh Data

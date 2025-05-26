@@ -26,18 +26,21 @@ public final class UserDataService: DataServiceProtocol {
     }
     
     // MARK: – Load Data User
-    public func loadData(predicate: NSPredicate? = nil, sortDescriptors: [RealmSwift.SortDescriptor]? = nil, limit: Int? = nil) -> RxSwift.Observable<[UsersModel]> {
-        loadDataUser(predicate: predicate, sortDescriptors: sortDescriptors, limit: limit)
+    public func loadData(sortDescriptors: [RealmSwift.SortDescriptor]? = nil, limit: Int? = nil) -> RxSwift.Observable<[UsersModel]> {
+        loadDataUser(sortDescriptors: sortDescriptors, limit: limit)
     }
     
-    private func loadDataUser(predicate: NSPredicate?, sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> Observable<[UsersModel]> {
-        let data = realmService.fetchAll(of: UsersModel.self, predicate: predicate, sortDescriptors: sortDescriptors, limit: limit)
+    private func loadDataUser(sortDescriptors: [RealmSwift.SortDescriptor]?, limit: Int?) -> Observable<[UsersModel]> {
         
-        if !data.isEmpty {
-            return Observable.just(data)
-        } else {
-            return refreshDataUser()
-        }
+        return realmService
+            .fetchAll(of: UsersModel.self, sortDescriptors: sortDescriptors, limit: limit)
+            .flatMap { [weak self] users -> Observable<[UsersModel]> in
+                guard let self else { return .just([]) }
+                return users.isEmpty ? self.refreshDataUser() : .just(users)
+            }
+            .do(onError: { error in
+                    print(error.localizedDescription)
+            })
     }
     
     // MARK: – Reftesh Data User
